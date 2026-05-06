@@ -1,24 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../screens/home_screen.dart';
+import '../screens/settings_screen.dart';
+
 final GoRouter appRouter = GoRouter(
   routes: <RouteBase>[
     GoRoute(
       path: '/',
       builder: (BuildContext context, GoRouterState state) {
-        return const AppHomeShell();
+        return const HomeScreen();
+      },
+    ),
+    GoRoute(
+      path: '/calendar',
+      builder: (BuildContext context, GoRouterState state) {
+        return const CalendarPlaceholderScreen();
+      },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (BuildContext context, GoRouterState state) {
+        return const SettingsScreen();
       },
     ),
   ],
 );
 
-class AppHomeShell extends StatelessWidget {
-  const AppHomeShell({super.key});
+class CalendarPlaceholderScreen extends StatelessWidget {
+  const CalendarPlaceholderScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(child: Center(child: Text('登校班当番表'))),
+    return Scaffold(
+      appBar: AppBar(title: const Text('当番表')),
+      body: const SafeArea(child: Center(child: Text('当番表画面は次の工程で実装します'))),
     );
   }
 }
