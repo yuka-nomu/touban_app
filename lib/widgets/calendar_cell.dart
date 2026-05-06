@@ -35,34 +35,48 @@ class CalendarCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            '${day.date.day}',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: _dateColor(colorScheme, isSunday, isSaturday),
+          SizedBox(
+            height: 18,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Text(
+                '${day.date.day}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _dateColor(colorScheme, isSunday, isSaturday),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          if (memberName != null && memberName!.isNotEmpty)
-            Expanded(
-              child: Center(
+          Expanded(
+            child: Center(
+              child: SizedBox(
+                width: double.infinity,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    memberName!,
+                    memberName ?? '',
                     maxLines: 1,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
             ),
-          if (day.eventText.isNotEmpty)
-            Text(
-              day.eventText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
+          ),
+          SizedBox(
+            height: 16,
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Text(
+                day.eventText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
+          ),
         ],
       ),
     );
