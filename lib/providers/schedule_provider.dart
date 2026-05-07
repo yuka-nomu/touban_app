@@ -62,6 +62,46 @@ class ScheduleNotifier
     state = AsyncData<MonthSchedule?>(nextSchedule);
   }
 
+  Future<void> swapMembers(CalendarDay sourceDay, CalendarDay targetDay) async {
+    if (DateUtils.isSameDay(sourceDay.date, targetDay.date)) {
+      return;
+    }
+
+    final MonthSchedule? currentSchedule = await future;
+    if (currentSchedule == null) {
+      return;
+    }
+
+    final int sourceIndex = currentSchedule.days.indexWhere(
+      (CalendarDay day) => DateUtils.isSameDay(day.date, sourceDay.date),
+    );
+    final int targetIndex = currentSchedule.days.indexWhere(
+      (CalendarDay day) => DateUtils.isSameDay(day.date, targetDay.date),
+    );
+    if (sourceIndex == -1 || targetIndex == -1) {
+      return;
+    }
+
+    final CalendarDay currentSourceDay = currentSchedule.days[sourceIndex];
+    final CalendarDay currentTargetDay = currentSchedule.days[targetIndex];
+    if (currentSourceDay.memberId == null ||
+        currentTargetDay.memberId == null) {
+      return;
+    }
+
+    final List<CalendarDay> days = <CalendarDay>[...currentSchedule.days];
+    days[sourceIndex] = currentSourceDay.copyWith(
+      memberId: currentTargetDay.memberId,
+    );
+    days[targetIndex] = currentTargetDay.copyWith(
+      memberId: currentSourceDay.memberId,
+    );
+
+    final MonthSchedule nextSchedule = currentSchedule.copyWith(days: days);
+    await ref.read(scheduleRepositoryProvider).save(nextSchedule);
+    state = AsyncData<MonthSchedule?>(nextSchedule);
+  }
+
   MonthSchedule _updateSchedule(
     MonthSchedule? currentSchedule,
     CalendarDay updatedDay,

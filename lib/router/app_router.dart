@@ -16,7 +16,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/calendar',
       builder: (BuildContext context, GoRouterState state) {
-        return CalendarScreen();
+        return CalendarScreen(month: _monthFromState(state));
       },
     ),
     GoRoute(
@@ -27,3 +27,13 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
+
+DateTime _monthFromState(GoRouterState state) {
+  final DateTime now = DateTime.now();
+  final int year =
+      int.tryParse(state.uri.queryParameters['year'] ?? '') ?? now.year;
+  final int month =
+      int.tryParse(state.uri.queryParameters['month'] ?? '') ?? now.month;
+
+  return DateTime(year, month);
+}

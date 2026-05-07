@@ -9,11 +9,13 @@ class CalendarGrid extends StatelessWidget {
     required this.month,
     required this.days,
     this.memberNamesById = const <String, String>{},
+    this.onDayTap,
   });
 
   final DateTime month;
   final List<CalendarDay> days;
   final Map<String, String> memberNamesById;
+  final ValueChanged<CalendarDay>? onDayTap;
 
   static const List<String> _weekdays = <String>[
     '日',
@@ -37,7 +39,7 @@ class CalendarGrid extends StatelessWidget {
 
     return Column(
       children: <Widget>[
-        _WeekdayHeader(labels: _weekdays),
+        const _WeekdayHeader(labels: _weekdays),
         const SizedBox(height: 4),
         GridView.builder(
           shrinkWrap: true,
@@ -61,10 +63,14 @@ class CalendarGrid extends StatelessWidget {
                 ? null
                 : memberNamesById[day.memberId];
 
-            return CalendarCell(
-              day: day,
-              weekdayIndex: index % 7,
-              memberName: memberName,
+            return InkWell(
+              onTap: onDayTap == null ? null : () => onDayTap!(day),
+              borderRadius: BorderRadius.circular(4),
+              child: CalendarCell(
+                day: day,
+                weekdayIndex: index % 7,
+                memberName: memberName,
+              ),
             );
           },
         ),

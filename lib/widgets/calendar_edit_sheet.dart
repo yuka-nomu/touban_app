@@ -70,6 +70,7 @@ class _CalendarEditSheetState extends ConsumerState<CalendarEditSheet> {
         Text('当番編集', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
+          key: ValueKey<String?>('member-$selectedMemberId-$_isActive'),
           initialValue: selectedMemberId,
           decoration: const InputDecoration(
             labelText: '当番者',

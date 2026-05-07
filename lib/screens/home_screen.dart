@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/member.dart';
+import '../models/month_schedule.dart';
 import '../providers/member_provider.dart';
+import '../providers/schedule_provider.dart';
+import '../services/assignment_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +18,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   late DateTime _selectedMonth;
   String? _selectedMemberId;
+  bool _isGenerating = false;
 
   @override
   void initState() {
@@ -37,6 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               selectedMonth: _selectedMonth,
               selectedMemberId: _validSelectedMemberId(memberList),
               members: memberList,
+              isGenerating: _isGenerating,
               onMonthChanged: (DateTime month) {
                 setState(() {
                   _selectedMonth = month;
@@ -47,9 +52,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _selectedMemberId = memberId;
                 });
               },
-              onGenerate: _validSelectedMemberId(memberList) == null
+              onGenerate:
+                  _validSelectedMemberId(memberList) == null || _isGenerating
                   ? null
-                  : () => context.go('/calendar'),
+                  : () => _generateSchedule(memberList),
               onOpenSettings: () => context.go('/settings'),
             ),
             error: (Object error, StackTrace stackTrace) {
@@ -74,6 +80,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     return members.first.id;
   }
+
+  Future<void> _generateSchedule(List<Member> members) async {
+    final String? startMemberId = _validSelectedMemberId(members);
+    if (startMemberId == null) {
+      return;
+    }
+
+    setState(() {
+      _isGenerating = true;
+    });
+
+    try {
+      final MonthSchedule schedule = const AssignmentService()
+          .generateMonthlySchedule(
+            year: _selectedMonth.year,
+            month: _selectedMonth.month,
+            members: members,
+            startMemberId: startMemberId,
+          );
+      final ScheduleMonth scheduleMonth = ScheduleMonth.fromDate(
+        _selectedMonth,
+      );
+
+      await ref.read(scheduleRepositoryProvider).save(schedule);
+      ref.invalidate(scheduleProvider(scheduleMonth));
+
+      if (!mounted) {
+        return;
+      }
+      context.go(
+        '/calendar?year=${_selectedMonth.year}&month=${_selectedMonth.month}',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('当番表の生成に失敗しました: $error')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
+  }
 }
 
 class _HomeContent extends StatelessWidget {
@@ -81,6 +134,7 @@ class _HomeContent extends StatelessWidget {
     required this.selectedMonth,
     required this.selectedMemberId,
     required this.members,
+    required this.isGenerating,
     required this.onMonthChanged,
     required this.onMemberChanged,
     required this.onGenerate,
@@ -90,6 +144,7 @@ class _HomeContent extends StatelessWidget {
   final DateTime selectedMonth;
   final String? selectedMemberId;
   final List<Member> members;
+  final bool isGenerating;
   final ValueChanged<DateTime> onMonthChanged;
   final ValueChanged<String?> onMemberChanged;
   final VoidCallback? onGenerate;
@@ -145,7 +200,10 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 32),
-        FilledButton(onPressed: onGenerate, child: const Text('当番表を生成')),
+        FilledButton(
+          onPressed: onGenerate,
+          child: Text(isGenerating ? '生成中...' : '当番表を生成'),
+        ),
         const SizedBox(height: 12),
         OutlinedButton(onPressed: onOpenSettings, child: const Text('設定')),
       ],
