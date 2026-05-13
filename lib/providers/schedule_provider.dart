@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/calendar_day.dart';
 import '../models/month_schedule.dart';
 import '../repositories/schedule_repository.dart';
+import '../services/member_assignment_slide_service.dart';
 
 final Provider<ScheduleRepository> scheduleRepositoryProvider =
     Provider<ScheduleRepository>((Ref ref) {
@@ -72,30 +73,12 @@ class ScheduleNotifier
       return;
     }
 
-    final int sourceIndex = currentSchedule.days.indexWhere(
-      (CalendarDay day) => DateUtils.isSameDay(day.date, sourceDay.date),
-    );
-    final int targetIndex = currentSchedule.days.indexWhere(
-      (CalendarDay day) => DateUtils.isSameDay(day.date, targetDay.date),
-    );
-    if (sourceIndex == -1 || targetIndex == -1) {
-      return;
-    }
-
-    final CalendarDay currentSourceDay = currentSchedule.days[sourceIndex];
-    final CalendarDay currentTargetDay = currentSchedule.days[targetIndex];
-    if (currentSourceDay.memberId == null ||
-        currentTargetDay.memberId == null) {
-      return;
-    }
-
-    final List<CalendarDay> days = <CalendarDay>[...currentSchedule.days];
-    days[sourceIndex] = currentSourceDay.copyWith(
-      memberId: currentTargetDay.memberId,
-    );
-    days[targetIndex] = currentTargetDay.copyWith(
-      memberId: currentSourceDay.memberId,
-    );
+    final List<CalendarDay> days = const MemberAssignmentSlideService()
+        .moveMember(
+          days: currentSchedule.days,
+          sourceDate: sourceDay.date,
+          targetDate: targetDay.date,
+        );
 
     final MonthSchedule nextSchedule = currentSchedule.copyWith(days: days);
     await ref.read(scheduleRepositoryProvider).save(nextSchedule);
