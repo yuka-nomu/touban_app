@@ -12,6 +12,7 @@ class ImageExportService {
 
   Future<String> exportCalendar({
     required DateTime month,
+    required String title,
     required List<CalendarDay> days,
     required Map<String, String> memberNamesById,
     required ThemeData theme,
@@ -20,6 +21,7 @@ class ImageExportService {
     final Uint8List imageBytes = await controller.captureFromWidget(
       _ExportCalendarImage(
         month: month,
+        title: title,
         days: days,
         memberNamesById: memberNamesById,
         theme: theme,
@@ -32,24 +34,46 @@ class ImageExportService {
     final Directory exportDirectory = Directory('${directory.path}/exports');
     await exportDirectory.create(recursive: true);
 
-    final String filePath =
-        '${exportDirectory.path}/touban_${month.year}_${month.month.toString().padLeft(2, '0')}.png';
-    final File file = File(filePath);
+    final File file = await _availableFile(exportDirectory, title);
     await file.writeAsBytes(imageBytes, flush: true);
 
-    return filePath;
+    return file.path;
+  }
+
+  Future<File> _availableFile(Directory directory, String title) async {
+    final String baseName = _safeFileName(title);
+    File file = File('${directory.path}/$baseName.png');
+    if (!await file.exists()) {
+      return file;
+    }
+
+    int index = 2;
+    while (true) {
+      file = File('${directory.path}/$baseName ($index).png');
+      if (!await file.exists()) {
+        return file;
+      }
+      index++;
+    }
+  }
+
+  String _safeFileName(String value) {
+    final String safeName = value.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    return safeName.trim().isEmpty ? 'calendar' : safeName.trim();
   }
 }
 
 class _ExportCalendarImage extends StatelessWidget {
   const _ExportCalendarImage({
     required this.month,
+    required this.title,
     required this.days,
     required this.memberNamesById,
     required this.theme,
   });
 
   final DateTime month;
+  final String title;
   final List<CalendarDay> days;
   final Map<String, String> memberNamesById;
   final ThemeData theme;
@@ -81,7 +105,7 @@ class _ExportCalendarImage extends StatelessWidget {
                   height: _headerHeight,
                   child: Center(
                     child: Text(
-                      '${month.year}年${month.month}月 見守り当番表',
+                      title,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/calendar_day.dart';
 import '../models/member.dart';
@@ -28,6 +29,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String title = _calendarTitle(widget.month);
     final ScheduleMonth scheduleMonth = ScheduleMonth.fromDate(widget.month);
     final AsyncValue<MonthSchedule?> schedule = ref.watch(
       scheduleProvider(scheduleMonth),
@@ -42,7 +44,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.month.year}年${widget.month.month}月 当番表'),
+        title: Text(title),
+        leading: IconButton(
+          tooltip: 'ホーム',
+          icon: const Icon(Icons.home_outlined),
+          onPressed: () => context.go('/'),
+        ),
         actions: <Widget>[
           IconButton(
             tooltip: '画像出力',
@@ -54,7 +61,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 : const Icon(Icons.image_outlined),
             onPressed: schedule.isLoading || _isExporting
                 ? null
-                : () => _exportCalendar(widget.month, days, memberNamesById),
+                : () => _exportCalendar(
+                    title,
+                    widget.month,
+                    days,
+                    memberNamesById,
+                  ),
           ),
         ],
       ),
@@ -80,6 +92,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
+  String _calendarTitle(DateTime month) {
+    return '${month.year}年${month.month}月 当番表';
+  }
+
   Future<void> _showEditSheet(BuildContext context, CalendarDay day) {
     return showModalBottomSheet<void>(
       context: context,
@@ -92,6 +108,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Future<void> _exportCalendar(
+    String title,
     DateTime month,
     List<CalendarDay> days,
     Map<String, String> memberNamesById,
@@ -103,6 +120,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     try {
       final String filePath = await const ImageExportService().exportCalendar(
         month: month,
+        title: title,
         days: days,
         memberNamesById: memberNamesById,
         theme: Theme.of(context),
