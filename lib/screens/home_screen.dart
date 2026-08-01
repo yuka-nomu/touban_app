@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/member.dart';
+import '../models/member_setting.dart';
 import '../models/month_schedule.dart';
 import '../providers/member_provider.dart';
 import '../providers/schedule_provider.dart';
@@ -29,35 +30,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AsyncValue<List<MemberSetting>> settings = ref.watch(
+      memberSettingsProvider,
+    );
     final AsyncValue<List<Member>> members = ref.watch(memberProvider);
+    final String? selectedSettingId = ref.watch(selectedMemberSettingIdProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('登校班当番表')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: members.when(
-            data: (List<Member> memberList) => _HomeContent(
-              selectedMonth: _selectedMonth,
-              selectedMemberId: _validSelectedMemberId(memberList),
-              members: memberList,
-              isGenerating: _isGenerating,
-              onMonthChanged: (DateTime month) {
-                setState(() {
-                  _selectedMonth = month;
-                });
-              },
-              onMemberChanged: (String? memberId) {
-                setState(() {
-                  _selectedMemberId = memberId;
-                });
-              },
-              onGenerate:
-                  _validSelectedMemberId(memberList) == null || _isGenerating
+          child: settings.when(
+            data: (List<MemberSetting> settingList) {
+              final List<Member> memberList = members.valueOrNull ?? const <Member>[];
+              final MemberSetting? selectedSetting = settingList.isEmpty
                   ? null
-                  : () => _generateSchedule(memberList),
-              onOpenSettings: () => context.go('/settings'),
-            ),
+                  : settingList.firstWhere(
+                      (MemberSetting setting) => setting.id == selectedSettingId,
+                      orElse: () => settingList.first,
+                    );
+
+              return _HomeContent(
+                selectedMonth: _selectedMonth,
+                selectedSettingId: selectedSetting?.id,
+                settings: settingList,
+                selectedMemberId: _validSelectedMemberId(memberList),
+                members: memberList,
+                isGenerating: _isGenerating,
+                onMonthChanged: (DateTime month) {
+                  setState(() {
+                    _selectedMonth = month;
+                  });
+                },
+                onSettingChanged: (String? settingId) {
+                  if (settingId == null) {
+                    return;
+                  }
+                  ref.read(memberSettingsProvider.notifier).selectSetting(settingId);
+                },
+                onMemberChanged: (String? memberId) {
+                  setState(() {
+                    _selectedMemberId = memberId;
+                  });
+                },
+                onGenerate:
+                    _validSelectedMemberId(memberList) == null || _isGenerating
+                    ? null
+                    : () => _generateSchedule(memberList),
+                onOpenSettings: () => context.go('/settings'),
+              );
+            },
             error: (Object error, StackTrace stackTrace) {
               return Center(child: Text('読み込みに失敗しました: $error'));
             },
@@ -132,20 +155,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.selectedMonth,
+    required this.selectedSettingId,
+    required this.settings,
     required this.selectedMemberId,
     required this.members,
     required this.isGenerating,
     required this.onMonthChanged,
+    required this.onSettingChanged,
     required this.onMemberChanged,
     required this.onGenerate,
     required this.onOpenSettings,
   });
 
   final DateTime selectedMonth;
+  final String? selectedSettingId;
+  final List<MemberSetting> settings;
   final String? selectedMemberId;
   final List<Member> members;
   final bool isGenerating;
   final ValueChanged<DateTime> onMonthChanged;
+  final ValueChanged<String?> onSettingChanged;
   final ValueChanged<String?> onMemberChanged;
   final VoidCallback? onGenerate;
   final VoidCallback onOpenSettings;
@@ -153,10 +182,39 @@ class _HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<DateTime> months = _selectableMonths();
+    final String? currentSettingId =
+        selectedSettingId != null &&
+            settings.any((MemberSetting setting) => setting.id == selectedSettingId)
+        ? selectedSettingId
+        : settings.isEmpty
+        ? null
+        : settings.first.id;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        const Text('メンバー設定'),
+        const SizedBox(height: 8),
+        _DropdownField(
+          child: DropdownButton<String>(
+            value: currentSettingId,
+            isExpanded: true,
+            hint: const Text('メンバー設定を作成してください'),
+            items: <DropdownMenuItem<String>>[
+              for (final MemberSetting setting in settings)
+                DropdownMenuItem<String>(
+                  value: setting.id,
+                  child: Text(
+                    setting.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: settings.isEmpty ? null : onSettingChanged,
+          ),
+        ),
+        const SizedBox(height: 24),
         const Text('対象月'),
         const SizedBox(height: 8),
         _DropdownField(

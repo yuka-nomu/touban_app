@@ -18,6 +18,9 @@ void _registerHiveAdapters() {
   if (!Hive.isAdapterRegistered(MemberAdapter().typeId)) {
     Hive.registerAdapter(MemberAdapter());
   }
+  if (!Hive.isAdapterRegistered(MemberSettingAdapter().typeId)) {
+    Hive.registerAdapter(MemberSettingAdapter());
+  }
   if (!Hive.isAdapterRegistered(CalendarDayAdapter().typeId)) {
     Hive.registerAdapter(CalendarDayAdapter());
   }

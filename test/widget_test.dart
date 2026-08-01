@@ -1,30 +1,54 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:touban_app/main.dart';
+import 'package:touban_app/models/models.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const MethodChannel pathProviderChannel = MethodChannel(
+      'plugins.flutter.io/path_provider',
+    );
+    final Directory tempDir = await Directory.systemTemp.createTemp();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathProviderChannel, (MethodCall methodCall) async {
+          switch (methodCall.method) {
+            case 'getApplicationDocumentsDirectory':
+              return tempDir.path;
+            case 'getTemporaryDirectory':
+              return tempDir.path;
+            default:
+              return null;
+          }
+        });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await Hive.initFlutter();
+    if (!Hive.isAdapterRegistered(MemberAdapter().typeId)) {
+      Hive.registerAdapter(MemberAdapter());
+    }
+    if (!Hive.isAdapterRegistered(MemberSettingAdapter().typeId)) {
+      Hive.registerAdapter(MemberSettingAdapter());
+    }
+    if (!Hive.isAdapterRegistered(CalendarDayAdapter().typeId)) {
+      Hive.registerAdapter(CalendarDayAdapter());
+    }
+    if (!Hive.isAdapterRegistered(MonthScheduleAdapter().typeId)) {
+      Hive.registerAdapter(MonthScheduleAdapter());
+    }
+    await Hive.deleteBoxFromDisk('member_settings');
+    await Hive.deleteBoxFromDisk('member_setting_selection');
+    await Hive.deleteBoxFromDisk('members');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('app opens the home screen', (WidgetTester tester) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('登校班当番表'), findsOneWidget);
   });
 }
