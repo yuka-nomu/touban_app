@@ -13,9 +13,13 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<List<MemberSetting>> settings = ref.watch(memberSettingsProvider);
+    final AsyncValue<List<MemberSetting>> settings = ref.watch(
+      memberSettingsProvider,
+    );
     final AsyncValue<List<Member>> members = ref.watch(memberProvider);
-    final String? selectedSettingId = ref.watch(selectedMemberSettingIdProvider);
+    final String? selectedSettingId = ref.watch(
+      selectedMemberSettingIdProvider,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -56,6 +60,8 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Row(
                   children: <Widget>[
+                    const Text('メンバー設定'),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: _DropdownField(
                         child: DropdownButton<String>(
@@ -79,26 +85,22 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'メンバー設定を追加',
+                      icon: const Icon(Icons.playlist_add),
+                      onPressed: () => _showAddSettingDialog(context, ref),
+                    ),
+                    IconButton(
                       tooltip: '設定を削除',
                       icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _deleteSetting(context, ref, currentSetting.id),
+                      onPressed: () =>
+                          _deleteSetting(context, ref, currentSetting.id),
                     ),
                   ],
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: <Widget>[
-                    const Text('メンバー'),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: () => _showAddMemberDialog(context, ref),
-                      icon: const Icon(Icons.person_add_alt_1_outlined),
-                      label: const Text('追加'),
-                    ),
-                  ],
-                ),
+                child: Row(children: <Widget>[const Text('メンバー')]),
               ),
               const SizedBox(height: 8),
               Expanded(
@@ -123,7 +125,9 @@ class SettingsScreen extends ConsumerWidget {
                           member: member,
                           index: index,
                           onDelete: () {
-                            ref.read(memberProvider.notifier).deleteMember(member.id);
+                            ref
+                                .read(memberProvider.notifier)
+                                .deleteMember(member.id);
                           },
                         );
                       },
@@ -132,7 +136,8 @@ class SettingsScreen extends ConsumerWidget {
                   error: (Object error, StackTrace stackTrace) {
                     return Center(child: Text('読み込みに失敗しました: $error'));
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                 ),
               ),
             ],
@@ -144,14 +149,19 @@ class SettingsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSettingDialog(context, ref),
-        tooltip: 'メンバー設定を追加',
-        child: const Icon(Icons.add),
+        onPressed: settings.hasValue
+            ? () => _showAddMemberDialog(context, ref)
+            : null,
+        tooltip: 'メンバーを追加',
+        child: const Icon(Icons.person_add_alt_1),
       ),
     );
   }
 
-  Future<void> _showAddSettingDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showAddSettingDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final String? name = await showDialog<String>(
       context: context,
       builder: (BuildContext context) => const _SettingNameDialog(),
@@ -174,7 +184,23 @@ class SettingsScreen extends ConsumerWidget {
       return;
     }
 
-    await ref.read(memberProvider.notifier).addMember(name);
+    try {
+      final bool added = await ref
+          .read(memberProvider.notifier)
+          .addMember(name);
+      if (!added && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('同じ名前のメンバーは登録できません')));
+      }
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('メンバーの登録に失敗しました: $error')));
+    }
   }
 
   Future<void> _deleteSetting(

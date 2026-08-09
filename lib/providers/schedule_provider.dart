@@ -89,12 +89,24 @@ class ScheduleNotifier
     MonthSchedule? currentSchedule,
     CalendarDay updatedDay,
   ) {
-    final List<CalendarDay> days = <CalendarDay>[
+    final List<CalendarDay> existingDays = <CalendarDay>[
       ...?currentSchedule?.days.where(
         (CalendarDay day) => !DateUtils.isSameDay(day.date, updatedDay.date),
       ),
       updatedDay,
     ]..sort((CalendarDay a, CalendarDay b) => a.date.compareTo(b.date));
+
+    final List<CalendarDay> days =
+        currentSchedule != null &&
+            currentSchedule.days.any(
+              (CalendarDay day) =>
+                  DateUtils.isSameDay(day.date, updatedDay.date) &&
+                  day.isActive &&
+                  day.memberId != null &&
+                  !updatedDay.isActive,
+            )
+        ? _shiftAssignmentsAfterDeactivation(currentSchedule.days, updatedDay)
+        : existingDays;
 
     return MonthSchedule(
       year: arg.year,
@@ -103,6 +115,43 @@ class ScheduleNotifier
           currentSchedule?.startMemberId ?? updatedDay.memberId ?? '',
       days: days,
     );
+  }
+
+  List<CalendarDay> _shiftAssignmentsAfterDeactivation(
+    List<CalendarDay> currentDays,
+    CalendarDay updatedDay,
+  ) {
+    final List<CalendarDay> days = <CalendarDay>[...currentDays]
+      ..sort((CalendarDay a, CalendarDay b) => a.date.compareTo(b.date));
+    final int sourceIndex = days.indexWhere(
+      (CalendarDay day) => DateUtils.isSameDay(day.date, updatedDay.date),
+    );
+    if (sourceIndex == -1) {
+      return days;
+    }
+
+    final List<int> laterActiveIndexes = <int>[
+      for (int index = sourceIndex + 1; index < days.length; index++)
+        if (days[index].isActive) index,
+    ];
+    final List<String?> assignments = <String?>[
+      days[sourceIndex].memberId,
+      for (final int index in laterActiveIndexes) days[index].memberId,
+    ];
+
+    final List<CalendarDay> updatedDays = <CalendarDay>[
+      for (int index = 0; index < days.length; index++)
+        DateUtils.isSameDay(days[index].date, updatedDay.date)
+            ? updatedDay
+            : days[index],
+    ];
+    for (int offset = 0; offset < laterActiveIndexes.length; offset++) {
+      final int dayIndex = laterActiveIndexes[offset];
+      updatedDays[dayIndex] = updatedDays[dayIndex].copyWith(
+        memberId: assignments[offset],
+      );
+    }
+    return updatedDays;
   }
 }
 

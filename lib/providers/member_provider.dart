@@ -146,15 +146,15 @@ class MemberNotifier extends AsyncNotifier<List<Member>> {
     return members;
   }
 
-  Future<void> addMember(String name) async {
+  Future<bool> addMember(String name) async {
     final String trimmedName = name.trim();
     if (trimmedName.isEmpty) {
-      return;
+      return false;
     }
 
     final String? selectedSettingId = ref.read(selectedMemberSettingIdProvider);
     if (selectedSettingId == null) {
-      return;
+      return false;
     }
 
     final List<MemberSetting> currentSettings = await ref.read(
@@ -164,11 +164,15 @@ class MemberNotifier extends AsyncNotifier<List<Member>> {
       (MemberSetting setting) => setting.id == selectedSettingId,
     );
     if (settingIndex == -1) {
-      return;
+      return false;
     }
 
     final MemberSetting currentSetting = currentSettings[settingIndex];
     final List<Member> currentMembers = <Member>[...currentSetting.members];
+    if (currentMembers.any((Member member) => member.name == trimmedName)) {
+      return false;
+    }
+
     final Member member = Member(
       id: _uuid.v4(),
       name: trimmedName,
@@ -186,6 +190,7 @@ class MemberNotifier extends AsyncNotifier<List<Member>> {
       updatedSettings,
     );
     state = AsyncData<List<Member>>(<Member>[...currentMembers, member]);
+    return true;
   }
 
   Future<void> deleteMember(String id) async {

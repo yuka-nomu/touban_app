@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:touban_app/main.dart';
 import 'package:touban_app/models/models.dart';
+import 'package:touban_app/repositories/member_repository.dart';
 
 void main() {
   setUpAll(() async {
@@ -50,5 +52,54 @@ void main() {
     await tester.pump();
 
     expect(find.text('登校班当番表'), findsOneWidget);
+  });
+
+  testWidgets('selecting a member setting on the home screen does not throw', (
+    WidgetTester tester,
+  ) async {
+    final MemberSettingsRepository repository = MemberSettingsRepository();
+    await repository.save(
+      const MemberSetting(
+        id: 'setting-1',
+        name: '設定1',
+        members: <Member>[],
+        sortOrder: 0,
+      ),
+    );
+    await repository.save(
+      const MemberSetting(
+        id: 'setting-2',
+        name: '設定2',
+        members: <Member>[],
+        sortOrder: 1,
+      ),
+    );
+
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('設定1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('設定2').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('設定2'), findsOneWidget);
+  });
+
+  testWidgets('registering a member from the settings screen succeeds', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('設定'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('メンバーを追加'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '山田太郎');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('山田太郎'), findsOneWidget);
   });
 }

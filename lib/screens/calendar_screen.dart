@@ -109,23 +109,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Future<void> _showTutorialIfNeeded() async {
-    final Box<bool> settingsBox = await Hive.openBox<bool>(_settingsBoxName);
-    final bool hasShownTutorial = settingsBox.get(
-      _calendarTutorialShownKey,
-      defaultValue: false,
-    )!;
-    if (hasShownTutorial || !mounted) {
+    try {
+      final Box<bool> settingsBox = await Hive.openBox<bool>(_settingsBoxName);
+      final bool hasShownTutorial = settingsBox.get(
+        _calendarTutorialShownKey,
+        defaultValue: false,
+      )!;
+      if (hasShownTutorial || !mounted) {
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return const _CalendarTutorialDialog();
+        },
+      );
+      await settingsBox.put(_calendarTutorialShownKey, true);
+    } catch (_) {
       return;
     }
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const _CalendarTutorialDialog();
-      },
-    );
-    await settingsBox.put(_calendarTutorialShownKey, true);
   }
 
   Future<void> _showEditSheet(BuildContext context, CalendarDay day) {

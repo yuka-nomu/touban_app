@@ -9,13 +9,37 @@ class ScheduleRepository {
   static const String boxName = 'schedules';
 
   Box<MonthSchedule>? _box;
+  Future<void>? _initializing;
 
   Future<void> init() async {
+    if (_box?.isOpen == true) {
+      return;
+    }
+    if (_initializing != null) {
+      return _initializing!;
+    }
+
+    final Future<void> initialization = _openBox();
+    _initializing = initialization;
     try {
-      _box ??= await Hive.openBox<MonthSchedule>(boxName);
+      await initialization;
+    } finally {
+      if (identical(_initializing, initialization)) {
+        _initializing = null;
+      }
+    }
+  }
+
+  Future<void> _openBox() async {
+    try {
+      if (Hive.isBoxOpen(boxName)) {
+        _box = Hive.box<MonthSchedule>(boxName);
+      } else {
+        _box = await Hive.openBox<MonthSchedule>(boxName);
+      }
     } catch (error) {
       throw RepositoryException(
-        'Failed to initialize schedule repository.',
+        'Failed to initialize schedule repository. Close other app instances and restart the app.',
         error,
       );
     }

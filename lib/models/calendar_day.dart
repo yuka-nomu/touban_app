@@ -32,7 +32,7 @@ class CalendarDay {
 
 class CalendarDayAdapter extends TypeAdapter<CalendarDay> {
   @override
-  final int typeId = 2;
+  final int typeId = 4;
 
   @override
   CalendarDay read(BinaryReader reader) {

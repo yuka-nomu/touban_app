@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -67,7 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (settingId == null) {
                     return;
                   }
-                  ref.read(memberSettingsProvider.notifier).selectSetting(settingId);
+                  unawaited(_selectSetting(context, ref, settingId));
                 },
                 onMemberChanged: (String? memberId) {
                   setState(() {
@@ -104,6 +106,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return members.first.id;
   }
 
+  Future<void> _selectSetting(
+    BuildContext context,
+    WidgetRef ref,
+    String settingId,
+  ) async {
+    try {
+      await ref.read(memberSettingsProvider.notifier).selectSetting(settingId);
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('メンバー設定の切り替えに失敗しました: $error')));
+    }
+  }
+
   Future<void> _generateSchedule(List<Member> members) async {
     final String? startMemberId = _validSelectedMemberId(members);
     if (startMemberId == null) {
@@ -122,12 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             members: members,
             startMemberId: startMemberId,
           );
-      final ScheduleMonth scheduleMonth = ScheduleMonth.fromDate(
-        _selectedMonth,
-      );
-
       await ref.read(scheduleRepositoryProvider).save(schedule);
-      ref.invalidate(scheduleProvider(scheduleMonth));
 
       if (!mounted) {
         return;
