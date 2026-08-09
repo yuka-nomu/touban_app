@@ -23,7 +23,7 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('設定'),
+        title: const Text('メンバー設定'),
         leading: IconButton(
           tooltip: 'ホーム',
           icon: const Icon(Icons.home_outlined),
@@ -37,12 +37,12 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const Text('メンバー設定がありません'),
+                  const Text('メンバーリストがありません'),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: () => _showAddSettingDialog(context, ref),
                     icon: const Icon(Icons.add),
-                    label: const Text('メンバー設定を追加'),
+                    label: const Text('メンバーリストを追加'),
                   ),
                 ],
               ),
@@ -60,7 +60,7 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Row(
                   children: <Widget>[
-                    const Text('メンバー設定'),
+                    const Text('メンバーリスト名'),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _DropdownField(
@@ -85,12 +85,12 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'メンバー設定を追加',
+                      tooltip: 'メンバーリストを追加',
                       icon: const Icon(Icons.playlist_add),
                       onPressed: () => _showAddSettingDialog(context, ref),
                     ),
                     IconButton(
-                      tooltip: '設定を削除',
+                      tooltip: 'リストを削除',
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () =>
                           _deleteSetting(context, ref, currentSetting.id),

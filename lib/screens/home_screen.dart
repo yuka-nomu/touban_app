@@ -41,7 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('登校班当番表')),
+      appBar: AppBar(title: const Text('当番表作成')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -213,13 +213,13 @@ class _HomeContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const Text('メンバー設定'),
+        const Text('メンバーリスト名'),
         const SizedBox(height: 8),
         _DropdownField(
           child: DropdownButton<String>(
             value: currentSettingId,
             isExpanded: true,
-            hint: const Text('メンバー設定を作成してください'),
+            hint: const Text('メンバーリストを作成してください'),
             items: <DropdownMenuItem<String>>[
               for (final MemberSetting setting in settings)
                 DropdownMenuItem<String>(
@@ -283,7 +283,7 @@ class _HomeContent extends StatelessWidget {
           child: Text(isGenerating ? '生成中...' : '当番表を生成'),
         ),
         const SizedBox(height: 12),
-        OutlinedButton(onPressed: onOpenSettings, child: const Text('設定')),
+        OutlinedButton(onPressed: onOpenSettings, child: const Text('メンバー設定')),
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () => context.go('/history'),
