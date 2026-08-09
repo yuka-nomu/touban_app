@@ -30,14 +30,44 @@ class ImageExportService {
       targetSize: const Size(1200, 760),
     );
 
-    final Directory directory = await getApplicationDocumentsDirectory();
-    final Directory exportDirectory = Directory('${directory.path}/exports');
+    final Directory exportDirectory = await _exportDirectory();
     await exportDirectory.create(recursive: true);
 
     final File file = await _availableFile(exportDirectory, title);
     await file.writeAsBytes(imageBytes, flush: true);
 
     return file.path;
+  }
+
+  Future<Directory> _exportDirectory() async {
+    if (Platform.isAndroid) {
+      final List<Directory>? directories = await getExternalStorageDirectories(
+        type: StorageDirectory.downloads,
+      );
+      if (directories != null && directories.isNotEmpty) {
+        return Directory('${directories.first.path}/exports');
+      }
+      return Directory(
+        '${(await getApplicationDocumentsDirectory()).path}/exports',
+      );
+    }
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final Directory? downloadsDirectory = await getDownloadsDirectory();
+      if (downloadsDirectory != null) {
+        return Directory('${downloadsDirectory.path}/toban');
+      }
+    }
+
+    if (Platform.isIOS) {
+      return Directory(
+        '${(await getApplicationDocumentsDirectory()).path}/toban',
+      );
+    }
+
+    return Directory(
+      '${(await getApplicationDocumentsDirectory()).path}/exports',
+    );
   }
 
   Future<File> _availableFile(Directory directory, String title) async {
