@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/calendar_day.dart';
 import '../models/member.dart';
+import '../models/member_setting.dart';
 import '../models/month_schedule.dart';
 import '../providers/member_provider.dart';
 import '../providers/schedule_provider.dart';
@@ -47,16 +48,33 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       scheduleProvider(scheduleMonth),
     );
     final AsyncValue<List<Member>> members = ref.watch(memberProvider);
+    final AsyncValue<List<MemberSetting>> settings = ref.watch(
+      memberSettingsProvider,
+    );
     final List<Member> memberList = members.valueOrNull ?? <Member>[];
     final Map<String, String> memberNamesById = <String, String>{
       for (final Member member in memberList) member.id: member.name,
     };
     final List<CalendarDay> days =
         schedule.valueOrNull?.days ?? const <CalendarDay>[];
+    final String? memberListName = _memberListName(
+      schedule.valueOrNull,
+      settings.valueOrNull ?? const <MemberSetting>[],
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(title),
+            if (memberListName != null)
+              Text(
+                memberListName,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+          ],
+        ),
         leading: IconButton(
           tooltip: 'ホーム',
           icon: const Icon(Icons.home_outlined),
@@ -106,6 +124,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   String _calendarTitle(DateTime month) {
     return '${month.year}年${month.month}月 当番表';
+  }
+
+  String? _memberListName(
+    MonthSchedule? schedule,
+    List<MemberSetting> settings,
+  ) {
+    if (schedule == null) {
+      return null;
+    }
+    for (final MemberSetting setting in settings) {
+      if (setting.members.any(
+        (Member member) => member.id == schedule.startMemberId,
+      )) {
+        return setting.name;
+      }
+    }
+    return null;
   }
 
   Future<void> _showTutorialIfNeeded() async {

@@ -36,7 +36,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       memberSettingsProvider,
     );
     final AsyncValue<List<Member>> members = ref.watch(memberProvider);
-    final String? selectedSettingId = ref.watch(selectedMemberSettingIdProvider);
+    final String? selectedSettingId = ref.watch(
+      selectedMemberSettingIdProvider,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('登校班当番表')),
@@ -45,11 +47,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.all(16),
           child: settings.when(
             data: (List<MemberSetting> settingList) {
-              final List<Member> memberList = members.valueOrNull ?? const <Member>[];
+              final List<Member> memberList =
+                  members.valueOrNull ?? const <Member>[];
               final MemberSetting? selectedSetting = settingList.isEmpty
                   ? null
                   : settingList.firstWhere(
-                      (MemberSetting setting) => setting.id == selectedSettingId,
+                      (MemberSetting setting) =>
+                          setting.id == selectedSettingId,
                       orElse: () => settingList.first,
                     );
 
@@ -198,7 +202,9 @@ class _HomeContent extends StatelessWidget {
     final List<DateTime> months = _selectableMonths();
     final String? currentSettingId =
         selectedSettingId != null &&
-            settings.any((MemberSetting setting) => setting.id == selectedSettingId)
+            settings.any(
+              (MemberSetting setting) => setting.id == selectedSettingId,
+            )
         ? selectedSettingId
         : settings.isEmpty
         ? null
@@ -278,6 +284,12 @@ class _HomeContent extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         OutlinedButton(onPressed: onOpenSettings, child: const Text('設定')),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => context.go('/history'),
+          icon: const Icon(Icons.history),
+          label: const Text('保存したカレンダー'),
+        ),
       ],
     );
   }

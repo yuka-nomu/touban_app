@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../screens/calendar_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/schedule_history_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   routes: <RouteBase>[
@@ -23,6 +24,12 @@ final GoRouter appRouter = GoRouter(
       path: '/settings',
       builder: (BuildContext context, GoRouterState state) {
         return const SettingsScreen();
+      },
+    ),
+    GoRoute(
+      path: '/history',
+      builder: (BuildContext context, GoRouterState state) {
+        return const ScheduleHistoryScreen();
       },
     ),
   ],

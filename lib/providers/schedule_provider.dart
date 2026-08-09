@@ -22,6 +22,11 @@ scheduleProvider =
       ScheduleMonth
     >(ScheduleNotifier.new);
 
+final FutureProvider<List<MonthSchedule>> scheduleHistoryProvider =
+    FutureProvider<List<MonthSchedule>>((Ref ref) {
+      return ref.read(scheduleRepositoryProvider).getAll();
+    });
+
 class ScheduleMonth {
   const ScheduleMonth({required this.year, required this.month});
 
