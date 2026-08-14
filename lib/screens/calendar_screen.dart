@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/calendar_day.dart';
 import '../models/member.dart';
@@ -31,6 +33,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   static const String _calendarTutorialShownKey = 'calendar_tutorial_shown';
 
   bool _isExporting = false;
+  bool _isSharing = false;
 
   @override
   void initState() {
@@ -98,6 +101,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     memberNamesById,
                   ),
           ),
+          if (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)
+            IconButton(
+              tooltip: '画像を共有',
+              icon: _isSharing
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.share_outlined),
+              onPressed: schedule.isLoading || _isExporting || _isSharing
+                  ? null
+                  : () => _shareCalendar(
+                      title,
+                      widget.month,
+                      days,
+                      memberNamesById,
+                    ),
+            ),
         ],
       ),
       body: SafeArea(
@@ -213,6 +235,46 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       if (mounted) {
         setState(() {
           _isExporting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _shareCalendar(
+    String title,
+    DateTime month,
+    List<CalendarDay> days,
+    Map<String, String> memberNamesById,
+  ) async {
+    setState(() {
+      _isSharing = true;
+    });
+
+    try {
+      final String filePath = await const ImageExportService().exportCalendar(
+        month: month,
+        title: title,
+        days: days,
+        memberNamesById: memberNamesById,
+        theme: Theme.of(context),
+      );
+      await SharePlus.instance.share(
+        ShareParams(
+          title: title,
+          files: <XFile>[XFile(filePath, mimeType: 'image/png')],
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('画像共有に失敗しました: $error')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSharing = false;
         });
       }
     }
