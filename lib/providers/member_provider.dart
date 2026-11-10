@@ -19,9 +19,10 @@ final StateProvider<String?> selectedMemberSettingIdProvider =
     StateProvider<String?>((Ref ref) => null);
 
 final AsyncNotifierProvider<MemberSettingsNotifier, List<MemberSetting>>
-memberSettingsProvider = AsyncNotifierProvider<MemberSettingsNotifier, List<MemberSetting>>(
-  MemberSettingsNotifier.new,
-);
+memberSettingsProvider =
+    AsyncNotifierProvider<MemberSettingsNotifier, List<MemberSetting>>(
+      MemberSettingsNotifier.new,
+    );
 
 final AsyncNotifierProvider<MemberNotifier, List<Member>> memberProvider =
     AsyncNotifierProvider<MemberNotifier, List<Member>>(MemberNotifier.new);
@@ -43,11 +44,10 @@ class MemberSettingsNotifier extends AsyncNotifier<List<MemberSetting>> {
     final String? selectedId = await ref
         .read(memberSettingsRepositoryProvider)
         .getSelectedSettingId();
-    final String resolvedId = settings.any(
-              (MemberSetting setting) => setting.id == selectedId,
-            )
-            ? selectedId!
-            : settings.first.id;
+    final String resolvedId =
+        settings.any((MemberSetting setting) => setting.id == selectedId)
+        ? selectedId!
+        : settings.first.id;
 
     await ref.read(memberSettingsRepositoryProvider).selectSetting(resolvedId);
     ref.read(selectedMemberSettingIdProvider.notifier).state = resolvedId;
@@ -68,8 +68,8 @@ class MemberSettingsNotifier extends AsyncNotifier<List<MemberSetting>> {
       sortOrder: currentSettings.length,
     );
 
-    final List<MemberSetting> updatedSettings = <MemberSetting>[...
-      currentSettings,
+    final List<MemberSetting> updatedSettings = <MemberSetting>[
+      ...currentSettings,
       setting,
     ];
 
@@ -95,12 +95,40 @@ class MemberSettingsNotifier extends AsyncNotifier<List<MemberSetting>> {
       ref.read(selectedMemberSettingIdProvider.notifier).state = null;
     } else {
       final String nextSettingId = orderedSettings.first.id;
-      await ref.read(memberSettingsRepositoryProvider).selectSetting(nextSettingId);
+      await ref
+          .read(memberSettingsRepositoryProvider)
+          .selectSetting(nextSettingId);
       ref.read(selectedMemberSettingIdProvider.notifier).state = nextSettingId;
     }
 
     state = AsyncData<List<MemberSetting>>(orderedSettings);
     ref.invalidate(memberProvider);
+  }
+
+  Future<void> renameSetting(String id, String name) async {
+    final String trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      return;
+    }
+
+    final List<MemberSetting> currentSettings = await future;
+    final int settingIndex = currentSettings.indexWhere(
+      (MemberSetting setting) => setting.id == id,
+    );
+    if (settingIndex == -1) {
+      return;
+    }
+
+    final MemberSetting updatedSetting = currentSettings[settingIndex].copyWith(
+      name: trimmedName,
+    );
+    final List<MemberSetting> updatedSettings = <MemberSetting>[
+      ...currentSettings,
+    ];
+    updatedSettings[settingIndex] = updatedSetting;
+
+    await ref.read(memberSettingsRepositoryProvider).save(updatedSetting);
+    state = AsyncData<List<MemberSetting>>(updatedSettings);
   }
 
   Future<void> selectSetting(String id) async {
@@ -182,13 +210,14 @@ class MemberNotifier extends AsyncNotifier<List<Member>> {
     final MemberSetting updatedSetting = currentSetting.copyWith(
       members: <Member>[...currentMembers, member],
     );
-    final List<MemberSetting> updatedSettings = <MemberSetting>[...currentSettings];
+    final List<MemberSetting> updatedSettings = <MemberSetting>[
+      ...currentSettings,
+    ];
     updatedSettings[settingIndex] = updatedSetting;
 
     await ref.read(memberSettingsRepositoryProvider).save(updatedSetting);
-    ref.read(memberSettingsProvider.notifier).state = AsyncData<List<MemberSetting>>(
-      updatedSettings,
-    );
+    ref.read(memberSettingsProvider.notifier).state =
+        AsyncData<List<MemberSetting>>(updatedSettings);
     state = AsyncData<List<Member>>(<Member>[...currentMembers, member]);
     return true;
   }
@@ -219,13 +248,14 @@ class MemberNotifier extends AsyncNotifier<List<Member>> {
     final MemberSetting updatedSetting = currentSetting.copyWith(
       members: orderedMembers,
     );
-    final List<MemberSetting> updatedSettings = <MemberSetting>[...currentSettings];
+    final List<MemberSetting> updatedSettings = <MemberSetting>[
+      ...currentSettings,
+    ];
     updatedSettings[settingIndex] = updatedSetting;
 
     await ref.read(memberSettingsRepositoryProvider).save(updatedSetting);
-    ref.read(memberSettingsProvider.notifier).state = AsyncData<List<MemberSetting>>(
-      updatedSettings,
-    );
+    ref.read(memberSettingsProvider.notifier).state =
+        AsyncData<List<MemberSetting>>(updatedSettings);
     state = AsyncData<List<Member>>(orderedMembers);
   }
 
@@ -258,13 +288,14 @@ class MemberNotifier extends AsyncNotifier<List<Member>> {
     final MemberSetting updatedSetting = currentSetting.copyWith(
       members: orderedMembers,
     );
-    final List<MemberSetting> updatedSettings = <MemberSetting>[...currentSettings];
+    final List<MemberSetting> updatedSettings = <MemberSetting>[
+      ...currentSettings,
+    ];
     updatedSettings[settingIndex] = updatedSetting;
 
     await ref.read(memberSettingsRepositoryProvider).save(updatedSetting);
-    ref.read(memberSettingsProvider.notifier).state = AsyncData<List<MemberSetting>>(
-      updatedSettings,
-    );
+    ref.read(memberSettingsProvider.notifier).state =
+        AsyncData<List<MemberSetting>>(updatedSettings);
     state = AsyncData<List<Member>>(orderedMembers);
   }
 

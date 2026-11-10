@@ -15,6 +15,7 @@ class ImageExportService {
     required String title,
     required List<CalendarDay> days,
     required Map<String, String> memberNamesById,
+    required String comment,
     required ThemeData theme,
   }) async {
     final ScreenshotController controller = ScreenshotController();
@@ -24,6 +25,7 @@ class ImageExportService {
         title: title,
         days: days,
         memberNamesById: memberNamesById,
+        comment: comment,
         theme: theme,
       ),
       pixelRatio: 2,
@@ -99,6 +101,7 @@ class _ExportCalendarImage extends StatelessWidget {
     required this.title,
     required this.days,
     required this.memberNamesById,
+    required this.comment,
     required this.theme,
   });
 
@@ -106,6 +109,7 @@ class _ExportCalendarImage extends StatelessWidget {
   final String title;
   final List<CalendarDay> days;
   final Map<String, String> memberNamesById;
+  final String comment;
   final ThemeData theme;
 
   static const double _width = 1200;
@@ -152,6 +156,18 @@ class _ExportCalendarImage extends StatelessWidget {
                     memberNamesById: memberNamesById,
                   ),
                 ),
+                if (comment.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      comment,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

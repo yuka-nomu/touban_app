@@ -68,6 +68,19 @@ class ScheduleNotifier
     state = AsyncData<MonthSchedule?>(nextSchedule);
   }
 
+  Future<void> updateComment(String comment) async {
+    final MonthSchedule? currentSchedule = await future;
+    if (currentSchedule == null || currentSchedule.comment == comment) {
+      return;
+    }
+
+    final MonthSchedule nextSchedule = currentSchedule.copyWith(
+      comment: comment,
+    );
+    state = AsyncData<MonthSchedule?>(nextSchedule);
+    await ref.read(scheduleRepositoryProvider).save(nextSchedule);
+  }
+
   Future<void> swapMembers(CalendarDay sourceDay, CalendarDay targetDay) async {
     if (DateUtils.isSameDay(sourceDay.date, targetDay.date)) {
       return;
@@ -119,6 +132,7 @@ class ScheduleNotifier
       startMemberId:
           currentSchedule?.startMemberId ?? updatedDay.memberId ?? '',
       days: days,
+      comment: currentSchedule?.comment ?? '',
     );
   }
 

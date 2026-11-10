@@ -8,24 +8,28 @@ class MonthSchedule {
     required this.month,
     required this.startMemberId,
     required this.days,
+    this.comment = '',
   });
 
   final int year;
   final int month;
   final String startMemberId;
   final List<CalendarDay> days;
+  final String comment;
 
   MonthSchedule copyWith({
     int? year,
     int? month,
     String? startMemberId,
     List<CalendarDay>? days,
+    String? comment,
   }) {
     return MonthSchedule(
       year: year ?? this.year,
       month: month ?? this.month,
       startMemberId: startMemberId ?? this.startMemberId,
       days: days ?? this.days,
+      comment: comment ?? this.comment,
     );
   }
 }
@@ -46,13 +50,14 @@ class MonthScheduleAdapter extends TypeAdapter<MonthSchedule> {
       month: fields[1] as int,
       startMemberId: fields[2] as String,
       days: (fields[3] as List).cast<CalendarDay>(),
+      comment: fields[4] as String? ?? '',
     );
   }
 
   @override
   void write(BinaryWriter writer, MonthSchedule obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.year)
       ..writeByte(1)
@@ -60,6 +65,8 @@ class MonthScheduleAdapter extends TypeAdapter<MonthSchedule> {
       ..writeByte(2)
       ..write(obj.startMemberId)
       ..writeByte(3)
-      ..write(obj.days);
+      ..write(obj.days)
+      ..writeByte(4)
+      ..write(obj.comment);
   }
 }

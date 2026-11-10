@@ -64,6 +64,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       schedule.valueOrNull,
       settings.valueOrNull ?? const <MemberSetting>[],
     );
+    final String comment = schedule.valueOrNull?.comment ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -99,6 +100,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     widget.month,
                     days,
                     memberNamesById,
+                    comment,
                   ),
           ),
           if (defaultTargetPlatform == TargetPlatform.android ||
@@ -118,6 +120,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       widget.month,
                       days,
                       memberNamesById,
+                      comment,
                     ),
             ),
         ],
@@ -127,11 +130,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           data: (MonthSchedule? monthSchedule) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(8),
-              child: CalendarGrid(
-                month: widget.month,
-                days: monthSchedule?.days ?? const <CalendarDay>[],
-                memberNamesById: memberNamesById,
-                onDayTap: (CalendarDay day) => _showEditSheet(context, day),
+              child: Column(
+                children: <Widget>[
+                  CalendarGrid(
+                    month: widget.month,
+                    days: monthSchedule?.days ?? const <CalendarDay>[],
+                    memberNamesById: memberNamesById,
+                    onDayTap: (CalendarDay day) => _showEditSheet(context, day),
+                  ),
+                  if (monthSchedule != null) ...<Widget>[
+                    const SizedBox(height: 16),
+                    _ScheduleCommentField(
+                      month: scheduleMonth,
+                      comment: monthSchedule.comment,
+                    ),
+                  ],
+                ],
               ),
             );
           },
@@ -205,6 +219,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     DateTime month,
     List<CalendarDay> days,
     Map<String, String> memberNamesById,
+    String comment,
   ) async {
     setState(() {
       _isExporting = true;
@@ -216,6 +231,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         title: title,
         days: days,
         memberNamesById: memberNamesById,
+        comment: comment,
         theme: Theme.of(context),
       );
       if (!mounted) {
@@ -245,6 +261,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     DateTime month,
     List<CalendarDay> days,
     Map<String, String> memberNamesById,
+    String comment,
   ) async {
     setState(() {
       _isSharing = true;
@@ -256,6 +273,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         title: title,
         days: days,
         memberNamesById: memberNamesById,
+        comment: comment,
         theme: Theme.of(context),
       );
       await SharePlus.instance.share(
@@ -277,6 +295,60 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           _isSharing = false;
         });
       }
+    }
+  }
+}
+
+class _ScheduleCommentField extends ConsumerStatefulWidget {
+  const _ScheduleCommentField({required this.month, required this.comment});
+
+  final ScheduleMonth month;
+  final String comment;
+
+  @override
+  ConsumerState<_ScheduleCommentField> createState() =>
+      _ScheduleCommentFieldState();
+}
+
+class _ScheduleCommentFieldState extends ConsumerState<_ScheduleCommentField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.comment,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      minLines: 2,
+      maxLines: 4,
+      decoration: const InputDecoration(
+        labelText: 'コメント',
+        hintText: '当番表に関するコメントを入力',
+        border: OutlineInputBorder(),
+        alignLabelWithHint: true,
+      ),
+      onChanged: (String comment) => _saveComment(context, comment),
+    );
+  }
+
+  Future<void> _saveComment(BuildContext context, String comment) async {
+    try {
+      await ref
+          .read(scheduleProvider(widget.month).notifier)
+          .updateComment(comment);
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('コメントの保存に失敗しました: $error')));
     }
   }
 }

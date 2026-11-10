@@ -58,42 +58,57 @@ class SettingsScreen extends ConsumerWidget {
             children: <Widget>[
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     const Text('メンバーリスト名'),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _DropdownField(
-                        child: DropdownButton<String>(
-                          value: currentSetting.id,
-                          isExpanded: true,
-                          items: <DropdownMenuItem<String>>[
-                            for (final MemberSetting setting in settingsList)
-                              DropdownMenuItem<String>(
-                                value: setting.id,
-                                child: Text(setting.name),
-                              ),
-                          ],
-                          onChanged: (String? value) {
-                            if (value != null) {
-                              ref
-                                  .read(memberSettingsProvider.notifier)
-                                  .selectSetting(value);
-                            }
-                          },
+                    const SizedBox(height: 8),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _DropdownField(
+                            child: DropdownButton<String>(
+                              value: currentSetting.id,
+                              isExpanded: true,
+                              items: <DropdownMenuItem<String>>[
+                                for (final MemberSetting setting
+                                    in settingsList)
+                                  DropdownMenuItem<String>(
+                                    value: setting.id,
+                                    child: Text(setting.name),
+                                  ),
+                              ],
+                              onChanged: (String? value) {
+                                if (value != null) {
+                                  ref
+                                      .read(memberSettingsProvider.notifier)
+                                      .selectSetting(value);
+                                }
+                              },
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'メンバーリストを追加',
-                      icon: const Icon(Icons.playlist_add),
-                      onPressed: () => _showAddSettingDialog(context, ref),
-                    ),
-                    IconButton(
-                      tooltip: 'リストを削除',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () =>
-                          _deleteSetting(context, ref, currentSetting.id),
+                        IconButton(
+                          tooltip: 'メンバーリスト名を変更',
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => _showRenameSettingDialog(
+                            context,
+                            ref,
+                            currentSetting,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'メンバーリストを追加',
+                          icon: const Icon(Icons.playlist_add),
+                          onPressed: () => _showAddSettingDialog(context, ref),
+                        ),
+                        IconButton(
+                          tooltip: 'リストを削除',
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () =>
+                              _deleteSetting(context, ref, currentSetting.id),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -164,7 +179,8 @@ class SettingsScreen extends ConsumerWidget {
   ) async {
     final String? name = await showDialog<String>(
       context: context,
-      builder: (BuildContext context) => const _SettingNameDialog(),
+      builder: (BuildContext context) =>
+          const _SettingNameDialog(title: 'メンバー設定を追加'),
     );
 
     if (name == null || name.trim().isEmpty) {
@@ -172,6 +188,35 @@ class SettingsScreen extends ConsumerWidget {
     }
 
     await ref.read(memberSettingsProvider.notifier).addSetting(name);
+  }
+
+  Future<void> _showRenameSettingDialog(
+    BuildContext context,
+    WidgetRef ref,
+    MemberSetting setting,
+  ) async {
+    final String? name = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) =>
+          _SettingNameDialog(title: 'メンバーリスト名を変更', initialName: setting.name),
+    );
+
+    if (name == null || name.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(memberSettingsProvider.notifier)
+          .renameSetting(setting.id, name);
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('メンバーリスト名の変更に失敗しました: $error')));
+    }
   }
 
   Future<void> _showAddMemberDialog(BuildContext context, WidgetRef ref) async {
@@ -237,14 +282,19 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _SettingNameDialog extends StatefulWidget {
-  const _SettingNameDialog();
+  const _SettingNameDialog({required this.title, this.initialName = ''});
+
+  final String title;
+  final String initialName;
 
   @override
   State<_SettingNameDialog> createState() => _SettingNameDialogState();
 }
 
 class _SettingNameDialogState extends State<_SettingNameDialog> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialName,
+  );
 
   @override
   void dispose() {
@@ -255,11 +305,11 @@ class _SettingNameDialogState extends State<_SettingNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('メンバー設定を追加'),
+      title: Text(widget.title),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(labelText: '設定名'),
+        decoration: const InputDecoration(labelText: 'メンバーリスト名'),
         onSubmitted: (_) => _submit(),
       ),
       actions: <Widget>[

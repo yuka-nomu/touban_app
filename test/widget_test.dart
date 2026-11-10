@@ -8,7 +8,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:touban_app/main.dart';
 import 'package:touban_app/models/models.dart';
+import 'package:touban_app/providers/schedule_provider.dart';
 import 'package:touban_app/repositories/member_repository.dart';
+import 'package:touban_app/repositories/schedule_repository.dart';
 
 void main() {
   setUpAll(() async {
@@ -18,7 +20,9 @@ void main() {
     );
     final Directory tempDir = await Directory.systemTemp.createTemp();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(pathProviderChannel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(pathProviderChannel, (
+          MethodCall methodCall,
+        ) async {
           switch (methodCall.method) {
             case 'getApplicationDocumentsDirectory':
               return tempDir.path;
@@ -101,5 +105,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('山田太郎'), findsOneWidget);
+  });
+
+  testWidgets('renaming a member list on the settings screen succeeds', (
+    WidgetTester tester,
+  ) async {
+    await MemberSettingsRepository().clear();
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('設定'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('メンバーリストを追加'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '元のリスト名');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('メンバーリスト名を変更'));
+    await tester.pumpAndSettle();
+    expect(find.text('元のリスト名'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '変更後のリスト名');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('変更後のリスト名'), findsOneWidget);
+    expect(find.text('元のリスト名'), findsNothing);
+    expect((await MemberSettingsRepository().getAll()).single.name, '変更後のリスト名');
+  });
+
+  test('saving a schedule comment persists it for that month', () async {
+    const ScheduleMonth month = ScheduleMonth(year: 2099, month: 12);
+    final ScheduleRepository repository = ScheduleRepository();
+    await repository.save(
+      const MonthSchedule(
+        year: 2099,
+        month: 12,
+        startMemberId: '',
+        days: <CalendarDay>[],
+      ),
+    );
+
+    final ProviderContainer container = ProviderContainer();
+    addTearDown(container.dispose);
+    await container.read(scheduleProvider(month).future);
+    await container
+        .read(scheduleProvider(month).notifier)
+        .updateComment('12月のコメント');
+
+    expect(
+      (await repository.getByMonth(month.year, month.month))?.comment,
+      '12月のコメント',
+    );
   });
 }
